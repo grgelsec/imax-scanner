@@ -226,3 +226,80 @@ def test_only_additions_send_mail(run, cfg):
     _, notifier, state = run(Swapped())
     assert notifier.sent == [], "tickets opening must not interrupt"
     assert any(event["kind"] == "on-sale" for event in state["events"]), "but it is still recorded"
+
+
+class FailingRecorder(Recorder):
+    """A notifier whose mail never leaves -- e.g. a mistyped app password."""
+
+    def send(self, message):
+        self.sent.append(message)
+        return False
+
+
+def test_undelivered_alert_is_not_recorded_as_seen(run, cfg):
+    """The failure that would have cost the first real email: if SMTP rejects
+    the login, the showtimes must NOT be written to state. Otherwise they
+    become the baseline, the alert is lost forever, and the run still claims
+    to be healthy."""
+    fetcher = StubFetcher()
+    run(fetcher)                                     # baseline, delivered fine
+    fetcher.page = "film_added.html"
+
+    summary, notifier, state = run(fetcher, FailingRecorder())
+    assert len(notifier.sent) == 1                   # it tried
+    assert summary.ok is False                       # and reported the failure
+    stored = state["sources"]["film:ST00001410"]["showtimes"]
+    assert len(stored) == 2, "the new showtime must not be recorded as seen"
+
+
+def test_the_retry_sends_exactly_once_when_mail_recovers(run, cfg):
+    fetcher = StubFetcher()
+    run(fetcher)
+    fetcher.page = "film_added.html"
+
+    run(fetcher, FailingRecorder())                  # mail broken
+    run(fetcher, FailingRecorder())                  # still broken, still pending
+
+    _, notifier, state = run(fetcher)                # mail works again
+    assert len(notifier.sent) == 1
+    assert "1 new showtime" in notifier.sent[0].subject
+    assert len(state["sources"]["film:ST00001410"]["showtimes"]) == 3
+
+    _, quiet, _ = run(fetcher)                       # and never again
+    assert quiet.sent == []
+
+
+def test_undelivered_baseline_retries(run, cfg):
+    """A bootstrap that could not be sent must not mark the film bootstrapped,
+    or the baseline is silently adopted and never announced."""
+    fetcher = StubFetcher()
+    _, _, state = run(fetcher, FailingRecorder())
+    assert state["sources"]["film:ST00001410"].get("bootstrapped") is not True
+
+    _, notifier, state = run(fetcher)
+    assert "Now watching" in notifier.sent[0].subject
+    assert state["sources"]["film:ST00001410"]["bootstrapped"] is True
+
+
+def test_undelivered_new_film_alert_is_not_marked_known(cfg):
+    """Same rule for the films sweep: don't claim to know a film until its
+    alert has actually gone out."""
+    state, notifier = default_state(), Recorder()
+    scan_films_index(cfg, state, notifier, StubFetcher())     # bootstrap, silent
+
+    extra = fixture("films_index.html").replace(
+        "</ul>", '<li><a href="/sites/indyimax/films/ST00001433">Dune: Part Three '
+                 'Fan First Premieres in IMAX</a></li></ul>')
+
+    class Swapped(StubFetcher):
+        def get(self, url, etag="", last_modified=""):
+            return FetchResult(url=url, status=200, text=extra, headers={})
+
+    issues = scan_films_index(cfg, state, notifier, Swapped(), )
+    assert "ST00001433" in state["known_film_ids"]
+
+    state2, failing = default_state(), FailingRecorder()
+    scan_films_index(cfg, state2, failing, StubFetcher())
+    issues = scan_films_index(cfg, state2, failing, Swapped())
+    assert "ST00001433" not in state2["known_film_ids"], "must retry next run"
+    assert issues

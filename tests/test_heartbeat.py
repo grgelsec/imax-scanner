@@ -116,3 +116,23 @@ def test_digest_reports_run_counts_and_window(cfg, freeze):
     assert "expect ~24" in text
     assert "7 showtime(s) on sale (2026-12-18 through 2026-12-20)" in text
     assert "If this email stops arriving" in text
+
+
+def test_undelivered_heartbeat_does_not_consume_the_day(cfg, freeze):
+    """A transient SMTP outage at noon must not silently skip the digest --
+    the next run that day should try again."""
+    class Failing(Recorder):
+        def send(self, message):
+            self.sent.append(message)
+            return False
+
+    freeze(datetime(2026, 8, 8, 12, 0, tzinfo=TZ))
+    state, failing = default_state(), Failing()
+    assert maybe_heartbeat(cfg, state, failing, _outcome()) is False
+    assert state["last_heartbeat_date_local"] is None
+
+    freeze(datetime(2026, 8, 8, 13, 0, tzinfo=TZ))
+    working = Recorder()
+    assert maybe_heartbeat(cfg, state, working, _outcome()) is True
+    assert state["last_heartbeat_date_local"] == "2026-08-08"
+    assert len(working.sent) == 1

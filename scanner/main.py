@@ -98,19 +98,21 @@ def _note_failure(cfg, state, entry, summary, notifier, reason: str, detail: str
     summary.issue = f"{reason}: {detail}" if detail else reason
     count = entry["consecutive_failures"]
     log.warning("%s (%s) - consecutive failures: %s", reason, detail, count)
-    if count == cfg.failure_alert_threshold and not entry.get("alerted"):
-        entry["alerted"] = True
-        notifier.send(parser_alert_message(summary.url, reason, f"{detail} (x{count} in a row)"))
-        record_event(state, "failure",
-                     f"{short_title(summary.title, summary.film_id)}: {reason}")
+    if count >= cfg.failure_alert_threshold and not entry.get("alerted"):
+        # Only remember having alerted if the alert actually left the building;
+        # otherwise a bad SMTP config would suppress it forever.
+        if notifier.send(parser_alert_message(summary.url, reason, f"{detail} (x{count} in a row)")):
+            entry["alerted"] = True
+            record_event(state, "failure",
+                         f"{short_title(summary.title, summary.film_id)}: {reason}")
 
 
 def _note_success(entry, state, summary, notifier, count: int) -> None:
     if entry.get("alerted"):
-        entry["alerted"] = False
-        notifier.send(recovery_message(summary.url, count))
-        record_event(state, "recovery",
-                     f"{short_title(summary.title, summary.film_id)}: parsing recovered")
+        if notifier.send(recovery_message(summary.url, count)):
+            entry["alerted"] = False
+            record_event(state, "recovery",
+                         f"{short_title(summary.title, summary.film_id)}: parsing recovered")
     entry["consecutive_failures"] = 0
 
 
@@ -174,21 +176,24 @@ def scan_film(cfg, state, notifier, fetcher, film_id: str, now_iso: str) -> Sour
     summary.count = len(parsed.showtimes)
     log.info("%s: parsed %s showtime(s) via %s", film_id, summary.count, parsed.layer)
 
+    delivered = True
     if not entry.get("bootstrapped"):
         # First sight of this film: record a baseline instead of alerting on
         # every showtime that was already on sale before we started watching.
-        notifier.send(bootstrap_message(summary.title, url, parsed.showtimes))
-        record_event(state, "bootstrap",
-                     f"started watching {short_title(summary.title, film_id)} "
-                     f"({summary.count} showtimes)")
-        entry["bootstrapped"] = True
+        delivered = notifier.send(bootstrap_message(summary.title, url, parsed.showtimes))
+        if delivered:
+            record_event(state, "bootstrap",
+                         f"started watching {short_title(summary.title, film_id)} "
+                         f"({summary.count} showtimes)")
+            entry["bootstrapped"] = True
     else:
         changes = diff_showtimes(stored, parsed.showtimes, cfg.local_tz)
         if changes.has_news:
-            notifier.send(new_showtimes_message(summary.title, url, changes))
-            record_event(state, "added",
-                         f"{len(changes.added)} new showtime(s): "
-                         + ", ".join(s.describe() for s in changes.added[:5]))
+            delivered = notifier.send(new_showtimes_message(summary.title, url, changes))
+            if delivered:
+                record_event(state, "added",
+                             f"{len(changes.added)} new showtime(s): "
+                             + ", ".join(s.describe() for s in changes.added[:5]))
         # Everything else -- tickets opening, sell-outs, pulled screenings --
         # is recorded for the daily digest but never interrupts. Only a
         # showtime that was not there last run earns an email.
@@ -198,6 +203,16 @@ def scan_film(cfg, state, notifier, fetcher, film_id: str, now_iso: str) -> Sour
             record_event(state, "on-sale", change.describe())
         for change in changes.changed:
             record_event(state, "changed", change.describe())
+
+    if not delivered:
+        # Leaving state untouched is what makes the next run retry. The diff is
+        # recomputed against the same stored showtimes, so the alert goes out
+        # once when mail works again -- not once per run in the meantime.
+        summary.ok = False
+        summary.issue = "alert could not be delivered; will retry next run"
+        log.error("%s: alert not delivered, leaving state unchanged so it retries", film_id)
+        _summarize_window(summary, entry.get("showtimes", {}))
+        return summary
 
     _store_showtimes(entry, parsed.showtimes, now_iso)
     _summarize_window(summary, entry["showtimes"])
@@ -236,7 +251,9 @@ def scan_films_index(cfg, state, notifier, fetcher) -> list[str]:
 
     new_ids, interesting = diff_films(state.get("known_film_ids", []), films, cfg.watch_pattern)
     if entry.get("bootstrapped") and interesting:
-        notifier.send(new_films_message(interesting, cfg.site_url, cfg.film_url))
+        if not notifier.send(new_films_message(interesting, cfg.site_url, cfg.film_url)):
+            log.error("new-film alert not delivered; not recording these ids so it retries")
+            return ["new film alert could not be delivered; will retry next run"]
         record_event(state, "new-film",
                      "new film page(s): " + ", ".join(f"{t or i} ({i})" for i, t in interesting))
     entry["bootstrapped"] = True
@@ -291,7 +308,7 @@ def maybe_heartbeat(cfg, state, notifier, outcome: ScanOutcome, force: bool = Fa
     ] or [{"title": film_id, "url": cfg.film_url(film_id), "count": 0, "first": "", "last": ""}
           for film_id in cfg.film_ids]
 
-    notifier.send(
+    delivered = notifier.send(
         heartbeat_message(
             healthy=outcome.healthy and failures == 0,
             local_now=local_now,
@@ -306,9 +323,11 @@ def maybe_heartbeat(cfg, state, notifier, outcome: ScanOutcome, force: bool = Fa
             issues=outcome.issues,
         )
     )
-    if not force:
+    if not force and delivered:
+        # An undelivered digest must not consume the day, or a transient SMTP
+        # outage at noon would silently skip the heartbeat entirely.
         state["last_heartbeat_date_local"] = today
-    return True
+    return delivered
 
 
 # --- cli --------------------------------------------------------------------
