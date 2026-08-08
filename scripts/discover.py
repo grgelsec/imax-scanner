@@ -30,6 +30,7 @@ from scanner.parse import (                # noqa: E402
     showtimes_from_dom,
     showtimes_from_embedded,
     showtimes_from_jsonld,
+    showtimes_from_tickmarq,
 )
 
 FIXTURES = Path(__file__).resolve().parent.parent / "tests" / "fixtures"
@@ -73,6 +74,7 @@ def report_page(name: str, url: str, fetcher: Fetcher, cfg, film_id: str, save: 
     print("\nper-layer yield:")
     for layer, extractor in (("json-ld", showtimes_from_jsonld),
                              ("embedded-state", showtimes_from_embedded),
+                             ("tickmarq", showtimes_from_tickmarq),
                              ("dom", showtimes_from_dom)):
         try:
             shows = extractor(html, film_id, cfg)
@@ -84,6 +86,8 @@ def report_page(name: str, url: str, fetcher: Fetcher, cfg, film_id: str, save: 
 
     chosen = parse_showtimes(html, film_id, cfg)
     print(f"\n=> parser would use layer '{chosen.layer}' -> {len(chosen.showtimes)} showtime(s)")
+    for show in chosen.showtimes:
+        print(f"     {show.describe():<52} [{show.status}]  {show.ticket_url}")
     if chosen.empty and looks_like_showtimes(html):
         dump_markup(html)
     if chosen.empty and chosen.saw_showtime_text:
