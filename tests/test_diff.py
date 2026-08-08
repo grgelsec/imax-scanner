@@ -95,9 +95,11 @@ def test_film_sweep_survives_a_bad_pattern():
     assert interesting == [("ST1", "Dune")]
 
 
-def test_tickets_going_on_sale_is_news(cfg, today):
-    """This venue lists screenings as 'Tickets Coming Soon' before you can buy.
-    The moment they become purchasable is the actionable event."""
+def test_tickets_going_on_sale_is_tracked_but_not_emailed(cfg, today):
+    """Scope is "tell me when new shows are added, and that's it". A screening
+    you already know about becoming purchasable is recorded for the daily
+    digest, but it is not an interruption -- it already emailed when the date
+    first appeared."""
     shows = parse_showtimes(fixture("live_film_odyssey.html"), "ST00001270", cfg, today=today).showtimes
     announced = [s for s in shows if s.status == "announced"][0]
     stored = {s.key: s.to_dict() for s in shows}
@@ -105,21 +107,23 @@ def test_tickets_going_on_sale_is_news(cfg, today):
     now_buyable = [replace(s, status="onsale") if s.key == announced.key else s for s in shows]
     result = diff_showtimes(stored, now_buyable, TZ)
     assert result.added == []
-    assert len(result.went_on_sale) == 1
-    assert result.has_news is True
+    assert result.has_news is False
+    assert len(result.went_on_sale) == 1          # still tracked for the digest
     assert "on sale" in result.went_on_sale[0].describe()
 
 
-def test_sold_out_seat_reappearing_is_also_news(cfg, today):
+def test_sold_out_seat_reappearing_is_tracked_but_not_emailed(cfg, today):
     shows = parse_showtimes(fixture("live_film_odyssey.html"), "ST00001270", cfg, today=today).showtimes
     gone = [s for s in shows if s.status == "soldout"][0]
     stored = {s.key: s.to_dict() for s in shows}
     freed = [replace(s, status="onsale") if s.key == gone.key else s for s in shows]
-    assert diff_showtimes(stored, freed, TZ).has_news is True
+    result = diff_showtimes(stored, freed, TZ)
+    assert result.has_news is False
+    assert len(result.went_on_sale) == 1
 
 
 def test_going_sold_out_is_not_news(cfg, today):
-    """The reverse direction is a digest line, not an interruption."""
+    """Nothing about availability interrupts -- only additions do."""
     shows = parse_showtimes(fixture("live_film_odyssey.html"), "ST00001270", cfg, today=today).showtimes
     live = [s for s in shows if s.status == "onsale"][0]
     stored = {s.key: s.to_dict() for s in shows}
@@ -145,6 +149,7 @@ def test_identity_migration_is_not_a_new_showtime(cfg, today):
     result = diff_showtimes({announced.key: announced.to_dict()}, [purchasable], tz)
     assert result.added == []
     assert result.removed == []
+    assert result.has_news is False   # one screening, already announced -- no second email
     assert len(result.went_on_sale) == 1
 
 

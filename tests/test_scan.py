@@ -204,3 +204,25 @@ def test_a_finished_run_going_empty_is_not_a_fault(run, cfg):
         summary, notifier, _ = run(fetcher)
     assert summary.ok is True
     assert notifier.sent == []
+
+
+def test_only_additions_send_mail(run, cfg):
+    """The whole alerting contract in one test: a screening appearing emails
+    once; that same screening becoming purchasable does not."""
+    fetcher = StubFetcher(page="live_film_odyssey.html")
+    run(fetcher)                                    # baseline
+
+    announced_gone = fixture("live_film_odyssey.html").replace(
+        '<span class="button hollow disabled has-tip top" data-tooltip aria-haspopup="true" '
+        'data-click-open="false" data-disable-hover="false" title="Tickets Coming Soon">2:45PM</span>',
+        '<a href="https://ticketing.uswest.veezi.com/purchase/22459?siteToken=h1x" '
+        'class="button  veezi-buy" title="The Odyssey: The IMAX 70mm Experience at 2:45PM on '
+        'Aug. 8, 2026">2:45PM</a>')
+
+    class Swapped(StubFetcher):
+        def get(self, url, etag="", last_modified=""):
+            return FetchResult(url=url, status=200, text=announced_gone, headers={})
+
+    _, notifier, state = run(Swapped())
+    assert notifier.sent == [], "tickets opening must not interrupt"
+    assert any(event["kind"] == "on-sale" for event in state["events"]), "but it is still recorded"

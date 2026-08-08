@@ -38,13 +38,14 @@ class ShowtimeDiff:
 
     @property
     def has_news(self) -> bool:
-        """Worth an email: a new screening, or one you can suddenly buy.
+        """Only a screening that was not there last run is worth an email.
 
-        This venue lists screenings as "Tickets Coming Soon" before they are
-        purchasable, so the moment tickets open is a separate event from the
-        moment the date appeared -- and it is the one you can act on.
+        Tickets opening on a screening you already know about is tracked (it
+        appears in the daily digest) but does not interrupt: a screening first
+        listed as "Tickets Coming Soon" already emailed when the date appeared,
+        which is the earliest signal there is.
         """
-        return bool(self.added or self.went_on_sale)
+        return bool(self.added)
 
     @property
     def any_movement(self) -> bool:

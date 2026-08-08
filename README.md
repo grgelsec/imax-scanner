@@ -64,19 +64,17 @@ Run workflow* to test, then merge to `main` to start the schedule.
 | --- | --- |
 | 👀 Now watching … | Once, on the first run — a baseline, so you don't get one alert per already-listed showtime |
 | 🎟️ N new showtimes | Showtimes were **added**. The one you actually care about |
-| 🎫 Tickets now on sale | Screenings you already knew about became purchasable |
 | 🎬 New film page … | A new film page matching `WATCH_PATTERN` appeared |
 | ⚠️ needs attention | The page loaded but showtimes could not be read — three runs in a row |
 | ✅ recovered | Parsing works again |
 | ✅/⚠️ daily digest | Once a day at noon local |
 
-Sold-outs and removed showtimes are recorded in the daily digest but never emailed on their
-own — only additions and tickets opening are worth an interruption.
+**Only additions send mail.** Tickets opening, sell-outs, and pulled screenings are recorded
+and show up in the daily digest, but they never interrupt.
 
-**Why "on sale" is its own alert:** this venue lists a screening as *Tickets Coming Soon*
-before you can buy it. That gives two separate moments worth knowing about — the date
-appearing, and the tickets opening — and only the second one you can act on. Both are
-captured; a screening going *sold out* is not, since there is nothing to do about it.
+This costs nothing in warning time. The venue lists a screening as *Tickets Coming Soon*
+before you can buy it, and that already counts as an addition — so the email goes out when the
+date first appears, which is the earliest signal available.
 
 ## The daily heartbeat
 
