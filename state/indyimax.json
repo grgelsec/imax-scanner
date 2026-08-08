@@ -6,7 +6,7 @@
     "ST00001450"
   ],
   "last_heartbeat_date_local": "2026-08-08",
-  "last_run_utc": "2026-08-08T17:52:22+00:00",
+  "last_run_utc": "2026-08-08T19:10:10+00:00",
   "run_log": [
     {
       "http": 200,
@@ -31,6 +31,12 @@
       "ok": true,
       "showtimes": 0,
       "ts": "2026-08-08T17:52:22+00:00"
+    },
+    {
+      "http": 200,
+      "ok": true,
+      "showtimes": 0,
+      "ts": "2026-08-08T19:10:10+00:00"
     }
   ],
   "schema_version": 1,
@@ -38,7 +44,7 @@
     "film:ST00001410": {
       "bootstrapped": true,
       "consecutive_failures": 0,
-      "content_hash": "a9059535bc57b20eeeb31f0dcf53cc1e819ec96a221fb7d120c89d5ad03640c9",
+      "content_hash": "b27dba45b1ba7b57952003c6ace8d27ad66aadcc9b353c91f97ce6a7660bfd42",
       "showtimes": {},
       "title": "Dune: Part Three - The IMAX 70mm Experience | IMAX Theater in the Indiana State Museum"
     },
