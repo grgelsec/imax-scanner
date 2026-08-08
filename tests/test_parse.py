@@ -139,9 +139,13 @@ def test_three_availability_states_are_distinguished(cfg, today):
     assert len(by_status["soldout"]) == 2
 
 
-def test_real_dune_page_is_genuinely_empty_not_broken(cfg, today):
-    """Dune: Part Three is listed as 'Opening Dec. 18, 2026' with no showtimes.
-    Silence here is correct and must not raise a false alarm."""
-    result = parse_showtimes(fixture("live_film_dune.html"), "ST00001410", cfg, today=today)
+def test_pre_sale_page_is_genuinely_empty_not_broken(cfg, today):
+    """A film page before any screening is scheduled: an 'Opening <date>' line
+    and no <dl>. Silence here is correct and must not raise a false alarm.
+
+    Note this is NOT what Dune: Part Three looks like -- it has had eight
+    screenings listed all along, which the pre-fix parser could not see.
+    """
+    result = parse_showtimes(fixture("film_pre_sale.html"), "ST00001410", cfg, today=today)
     assert result.empty
     assert result.saw_showtime_text is False
