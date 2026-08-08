@@ -1,12 +1,19 @@
 {
   "consecutive_parse_failures": 0,
+  "events": [
+    {
+      "kind": "added",
+      "text": "8 new showtime(s): Thu Dec 17, 2026 at 7:00 PM EST - IMAX 70mm - SOLD OUT, Thu Dec 17, 2026 at 10:00 PM EST - IMAX 70mm - SOLD OUT, Fri Dec 18, 2026 at 7:00 PM EST - IMAX 70mm - SOLD OUT, Fri Dec 18, 2026 at 10:00 PM EST - IMAX 70mm - SOLD OUT, Sat Dec 19, 2026 at 7:00 PM EST - IMAX 70mm",
+      "ts": "2026-08-08T20:40:06+00:00"
+    }
+  ],
   "known_film_ids": [
     "ST00001270",
     "ST00001410",
     "ST00001450"
   ],
   "last_heartbeat_date_local": "2026-08-08",
-  "last_run_utc": "2026-08-08T19:48:18+00:00",
+  "last_run_utc": "2026-08-08T20:40:07+00:00",
   "run_log": [
     {
       "http": 200,
@@ -43,6 +50,12 @@
       "ok": true,
       "showtimes": 0,
       "ts": "2026-08-08T19:48:18+00:00"
+    },
+    {
+      "http": 200,
+      "ok": true,
+      "showtimes": 8,
+      "ts": "2026-08-08T20:40:07+00:00"
     }
   ],
   "schema_version": 1,
@@ -50,8 +63,113 @@
     "film:ST00001410": {
       "bootstrapped": true,
       "consecutive_failures": 0,
-      "content_hash": "ccc8ecce63504a33c32a3ebedd6d691008f4cc7e05a5d56bf34b252d926b7e12",
-      "showtimes": {},
+      "content_hash": "a9059535bc57b20eeeb31f0dcf53cc1e819ec96a221fb7d120c89d5ad03640c9",
+      "showtimes": {
+        "pid:22015": {
+          "auditorium": "",
+          "datetime_local": "2026-12-17T19:00:00-05:00",
+          "datetime_utc": "2026-12-18T00:00:00+00:00",
+          "film_id": "ST00001410",
+          "first_seen": "2026-08-08T20:40:04+00:00",
+          "format": "IMAX 70mm",
+          "last_seen": "2026-08-08T20:40:04+00:00",
+          "performance_id": "22015",
+          "status": "soldout",
+          "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22015?siteToken=h1x2n993cctmzegr3ev7gsev08",
+          "title": "Dune: Part Three - The IMAX 70mm Experience"
+        },
+        "pid:22016": {
+          "auditorium": "",
+          "datetime_local": "2026-12-18T19:00:00-05:00",
+          "datetime_utc": "2026-12-19T00:00:00+00:00",
+          "film_id": "ST00001410",
+          "first_seen": "2026-08-08T20:40:04+00:00",
+          "format": "IMAX 70mm",
+          "last_seen": "2026-08-08T20:40:04+00:00",
+          "performance_id": "22016",
+          "status": "soldout",
+          "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22016?siteToken=h1x2n993cctmzegr3ev7gsev08",
+          "title": "Dune: Part Three - The IMAX 70mm Experience"
+        },
+        "pid:22017": {
+          "auditorium": "",
+          "datetime_local": "2026-12-19T19:00:00-05:00",
+          "datetime_utc": "2026-12-20T00:00:00+00:00",
+          "film_id": "ST00001410",
+          "first_seen": "2026-08-08T20:40:04+00:00",
+          "format": "IMAX 70mm",
+          "last_seen": "2026-08-08T20:40:04+00:00",
+          "performance_id": "22017",
+          "status": "onsale",
+          "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22017?siteToken=h1x2n993cctmzegr3ev7gsev08",
+          "title": "Dune: Part Three - The IMAX 70mm Experience"
+        },
+        "pid:22018": {
+          "auditorium": "",
+          "datetime_local": "2026-12-20T19:00:00-05:00",
+          "datetime_utc": "2026-12-21T00:00:00+00:00",
+          "film_id": "ST00001410",
+          "first_seen": "2026-08-08T20:40:04+00:00",
+          "format": "IMAX 70mm",
+          "last_seen": "2026-08-08T20:40:04+00:00",
+          "performance_id": "22018",
+          "status": "onsale",
+          "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22018?siteToken=h1x2n993cctmzegr3ev7gsev08",
+          "title": "Dune: Part Three - The IMAX 70mm Experience"
+        },
+        "pid:22019": {
+          "auditorium": "",
+          "datetime_local": "2026-12-17T22:00:00-05:00",
+          "datetime_utc": "2026-12-18T03:00:00+00:00",
+          "film_id": "ST00001410",
+          "first_seen": "2026-08-08T20:40:04+00:00",
+          "format": "IMAX 70mm",
+          "last_seen": "2026-08-08T20:40:04+00:00",
+          "performance_id": "22019",
+          "status": "soldout",
+          "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22019?siteToken=h1x2n993cctmzegr3ev7gsev08",
+          "title": "Dune: Part Three - The IMAX 70mm Experience"
+        },
+        "pid:22020": {
+          "auditorium": "",
+          "datetime_local": "2026-12-18T22:00:00-05:00",
+          "datetime_utc": "2026-12-19T03:00:00+00:00",
+          "film_id": "ST00001410",
+          "first_seen": "2026-08-08T20:40:04+00:00",
+          "format": "IMAX 70mm",
+          "last_seen": "2026-08-08T20:40:04+00:00",
+          "performance_id": "22020",
+          "status": "soldout",
+          "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22020?siteToken=h1x2n993cctmzegr3ev7gsev08",
+          "title": "Dune: Part Three - The IMAX 70mm Experience"
+        },
+        "pid:22021": {
+          "auditorium": "",
+          "datetime_local": "2026-12-19T22:00:00-05:00",
+          "datetime_utc": "2026-12-20T03:00:00+00:00",
+          "film_id": "ST00001410",
+          "first_seen": "2026-08-08T20:40:04+00:00",
+          "format": "IMAX 70mm",
+          "last_seen": "2026-08-08T20:40:04+00:00",
+          "performance_id": "22021",
+          "status": "onsale",
+          "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22021?siteToken=h1x2n993cctmzegr3ev7gsev08",
+          "title": "Dune: Part Three - The IMAX 70mm Experience"
+        },
+        "pid:22022": {
+          "auditorium": "",
+          "datetime_local": "2026-12-20T22:00:00-05:00",
+          "datetime_utc": "2026-12-21T03:00:00+00:00",
+          "film_id": "ST00001410",
+          "first_seen": "2026-08-08T20:40:04+00:00",
+          "format": "IMAX 70mm",
+          "last_seen": "2026-08-08T20:40:04+00:00",
+          "performance_id": "22022",
+          "status": "onsale",
+          "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22022?siteToken=h1x2n993cctmzegr3ev7gsev08",
+          "title": "Dune: Part Three - The IMAX 70mm Experience"
+        }
+      },
       "title": "Dune: Part Three - The IMAX 70mm Experience | IMAX Theater in the Indiana State Museum"
     },
     "films-index": {
