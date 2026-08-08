@@ -64,6 +64,20 @@ class Notifier:
 
 
 # --- rendering --------------------------------------------------------------
+def film_name(title: str, fallback: str = "") -> str:
+    """Just the film, for subject lines.
+
+    'Dune: Part Three - The IMAX 70mm Experience | IMAX Theater in the Indiana
+    State Museum' -> 'Dune: Part Three'. Subjects get truncated around 45
+    characters on a phone lock screen, so the count and the dates have to come
+    first and the venue boilerplate has to go.
+    """
+    name = short_title(title, fallback)
+    for separator in (" - The IMAX", ": The IMAX", " - IMAX", " in IMAX"):
+        name = name.split(separator)[0]
+    return name.strip(" -:") or fallback
+
+
 def short_title(title: str, fallback: str = "") -> str:
     """'Dune: Part Three - ... at IMAX Theater in the ...' -> 'Dune: Part Three - ...'"""
     cleaned = (title or "").strip()
@@ -118,7 +132,11 @@ def new_showtimes_message(film_title: str, film_url: str, diff) -> Message:
     count = len(diff.added)
     plural = "" if count == 1 else "s"
     title = short_title(film_title, "Dune: Part Three")
-    subject = f"\U0001f39f\ufe0f {count} new showtime{plural} - {title} ({_date_range(diff.added)})"
+    # Count and dates first: this is what survives truncation, and the dates
+    # are the whole point -- they say whether anything beyond what you already
+    # know about has appeared.
+    subject = (f"\U0001f39f\ufe0f {count} new showtime{plural}: {_date_range(diff.added)}"
+               f" \u2014 {film_name(film_title, 'Dune: Part Three')}")
 
     text = [f"{count} new showtime{plural} listed for {title}:", "",
             _showtime_list_text(diff.added), ""]

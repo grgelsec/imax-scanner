@@ -303,3 +303,19 @@ def test_undelivered_new_film_alert_is_not_marked_known(cfg):
     issues = scan_films_index(cfg, state2, failing, Swapped())
     assert "ST00001433" not in state2["known_film_ids"], "must retry next run"
     assert issues
+
+
+def test_subject_puts_the_new_dates_before_the_film_name(run, cfg):
+    """The dates are the payload -- they are what tells you whether anything
+    beyond what you already know about has appeared. Phone lock screens cut
+    the subject around 45 characters, so the count and dates must come first
+    and the venue boilerplate must not push them off the end."""
+    fetcher = StubFetcher()
+    run(fetcher)
+    fetcher.page = "film_added.html"
+    _, notifier, _ = run(fetcher)
+
+    subject = notifier.sent[0].subject
+    assert "Dec 20" in subject[:45], f"date lost to truncation: {subject!r}"
+    assert subject.index("Dec 20") < subject.index("Dune"), "dates must precede the film name"
+    assert "IMAX 70mm Experience" not in subject, "venue boilerplate must be stripped"
