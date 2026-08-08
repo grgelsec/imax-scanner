@@ -112,7 +112,11 @@ def main() -> int:
     for url in (cfg.film_url(film_id), cfg.films_index_url, cfg.showtimes_url()):
         print(f"allowed to fetch {url}: {fetcher.allowed(url)}")
 
-    report_page("Film page", cfg.film_url(film_id), fetcher, cfg, film_id, args.save)
+    # Probe every configured film. Pointing this at a film with tickets on sale
+    # today acts as a control: if that one also yields zero showtimes, the
+    # parser is broken rather than the schedule being empty.
+    for fid in cfg.film_ids:
+        report_page(f"Film page {fid}", cfg.film_url(fid), fetcher, cfg, fid, args.save)
 
     rule(f"Films index\n{cfg.films_index_url}")
     index = fetcher.get(cfg.films_index_url)
