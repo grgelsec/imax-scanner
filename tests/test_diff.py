@@ -4,6 +4,7 @@ from dataclasses import replace
 
 from conftest import fixture
 from scanner.diff import diff_films, diff_showtimes
+from scanner.models import Showtime, parse_datetime
 from scanner.parse import parse_showtimes
 
 TZ = "America/Indiana/Indianapolis"
@@ -92,3 +93,73 @@ def test_film_sweep_flags_only_matching_new_pages():
 def test_film_sweep_survives_a_bad_pattern():
     new_ids, interesting = diff_films([], {"ST1": "Dune"}, "(unclosed[")
     assert interesting == [("ST1", "Dune")]
+
+
+def test_tickets_going_on_sale_is_tracked_but_not_emailed(cfg, today):
+    """Scope is "tell me when new shows are added, and that's it". A screening
+    you already know about becoming purchasable is recorded for the daily
+    digest, but it is not an interruption -- it already emailed when the date
+    first appeared."""
+    shows = parse_showtimes(fixture("live_film_odyssey.html"), "ST00001270", cfg, today=today).showtimes
+    announced = [s for s in shows if s.status == "announced"][0]
+    stored = {s.key: s.to_dict() for s in shows}
+
+    now_buyable = [replace(s, status="onsale") if s.key == announced.key else s for s in shows]
+    result = diff_showtimes(stored, now_buyable, TZ)
+    assert result.added == []
+    assert result.has_news is False
+    assert len(result.went_on_sale) == 1          # still tracked for the digest
+    assert "on sale" in result.went_on_sale[0].describe()
+
+
+def test_sold_out_seat_reappearing_is_tracked_but_not_emailed(cfg, today):
+    shows = parse_showtimes(fixture("live_film_odyssey.html"), "ST00001270", cfg, today=today).showtimes
+    gone = [s for s in shows if s.status == "soldout"][0]
+    stored = {s.key: s.to_dict() for s in shows}
+    freed = [replace(s, status="onsale") if s.key == gone.key else s for s in shows]
+    result = diff_showtimes(stored, freed, TZ)
+    assert result.has_news is False
+    assert len(result.went_on_sale) == 1
+
+
+def test_going_sold_out_is_not_news(cfg, today):
+    """Nothing about availability interrupts -- only additions do."""
+    shows = parse_showtimes(fixture("live_film_odyssey.html"), "ST00001270", cfg, today=today).showtimes
+    live = [s for s in shows if s.status == "onsale"][0]
+    stored = {s.key: s.to_dict() for s in shows}
+    now_gone = [replace(s, status="soldout") if s.key == live.key else s for s in shows]
+    result = diff_showtimes(stored, now_gone, TZ)
+    assert result.has_news is False
+    assert len(result.changed) == 1
+
+
+def test_identity_migration_is_not_a_new_showtime(cfg, today):
+    """A 'Tickets Coming Soon' span has no Veezi id; the purchasable link that
+    replaces it does. Keyed naively that reads as the screening vanishing and a
+    different one appearing -- so you would be told 'new showtime' twice for
+    one screening, with a confusing 'no longer listed' block attached."""
+    tz = cfg.local_tz
+    announced = Showtime("ST00001410", parse_datetime("2026-12-18T19:00", tz), status="announced")
+    purchasable = Showtime("ST00001410", parse_datetime("2026-12-18T19:00", tz),
+                           format="IMAX 70mm", performance_id="31001",
+                           ticket_url="https://ticketing.uswest.veezi.com/purchase/31001",
+                           status="onsale")
+    assert announced.key != purchasable.key  # identity genuinely changed
+
+    result = diff_showtimes({announced.key: announced.to_dict()}, [purchasable], tz)
+    assert result.added == []
+    assert result.removed == []
+    assert result.has_news is False   # one screening, already announced -- no second email
+    assert len(result.went_on_sale) == 1
+
+
+def test_ambiguous_migration_is_left_alone(cfg, today):
+    """Two screenings at the same instant cannot be matched up safely, so fall
+    back to reporting them plainly rather than guessing a pairing."""
+    tz = cfg.local_tz
+    when = parse_datetime("2026-12-18T19:00", tz)
+    before = [Showtime("F", when, format="IMAX 70mm"), Showtime("F", when, format="Digital")]
+    after = [Showtime("F", when, performance_id="A", status="onsale")]
+    result = diff_showtimes({s.key: s.to_dict() for s in before}, after, tz)
+    assert len(result.added) == 1
+    assert len(result.removed) == 2

@@ -69,8 +69,12 @@ Run workflow* to test, then merge to `main` to start the schedule.
 | ✅ recovered | Parsing works again |
 | ✅/⚠️ daily digest | Once a day at noon local |
 
-Sold-outs and removed showtimes are recorded in the daily digest but never emailed on their
-own — only additions are worth an interruption.
+**Only additions send mail.** Tickets opening, sell-outs, and pulled screenings are recorded
+and show up in the daily digest, but they never interrupt.
+
+This costs nothing in warning time. The venue lists a screening as *Tickets Coming Soon*
+before you can buy it, and that already counts as an addition — so the email goes out when the
+date first appears, which is the earliest signal available.
 
 ## The daily heartbeat
 
@@ -109,8 +113,11 @@ CLI: `--dry-run`, `--no-jitter`, `--test-email`, `--force-heartbeat`, `-v`.
 `state/indyimax.json` is committed after every run — that file is the scanner's memory, and
 its diffs are a readable history of when each showtime appeared.
 
-Each showtime gets a stable identity: the platform's performance ID when the page exposes
-one, otherwise a hash of film + exact local start time + format + auditorium. Availability is
+Each showtime gets a stable identity: the Veezi session id from its ticket link when the page
+exposes one, otherwise a hash of film + exact local start time + format + auditorium. When a
+screening gains an id — which happens the moment *Tickets Coming Soon* becomes purchasable —
+the diff matches it back to the old record by start time, so one screening going on sale is not
+reported as a different screening appearing and the original vanishing. Availability is
 deliberately **not** part of that identity, so a show selling out reads as a change rather
 than as one showtime vanishing and a different one appearing.
 

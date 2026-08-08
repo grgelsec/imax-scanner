@@ -80,3 +80,72 @@ def test_parser_never_raises_on_garbage(cfg, today):
     for junk in ("", "<html>", "<<<>>>", "not html at all", "<time datetime='nope'></time>"):
         result = parse_showtimes(junk, "ST00001410", cfg, today=today)
         assert result.showtimes == []
+
+
+def test_purchase_widget_without_parseable_times_is_a_fault_not_an_empty_page(cfg, today):
+    """A client-rendered page carries a seat/quantity picker but no clock text.
+    Without this, it looks identical to 'no showtimes on sale' and the scanner
+    would stay silent forever -- the exact failure this monitor exists to avoid.
+    """
+    result = parse_showtimes(fixture("film_js_shell.html"), "ST00001410", cfg, today=today)
+    assert result.empty
+    assert result.saw_showtime_text is True
+
+
+def test_generic_buy_tickets_wording_alone_does_not_cry_wolf(cfg, today):
+    """Site-wide nav saying 'Buy Tickets' must not flag a genuinely empty page."""
+    html = "<html><body><nav>Buy Tickets</nav><p>Opening December 18.</p></body></html>"
+    assert parse_showtimes(html, "ST00001410", cfg, today=today).saw_showtime_text is False
+
+
+# --- the real markup this venue ships (captured from a live discovery run) ---
+
+def test_real_film_page_parses_every_showtime(cfg, today):
+    """Pins the live structure: <dl><dt>date</dt><dd>time buttons</dd></dl>,
+    where each button's title reads '<Film> at 6:30PM on Aug. 8, 2026'.
+    If the site is redesigned this fails loudly in CI, which is the whole
+    point -- the alternative is discovering it by never being emailed."""
+    result = parse_showtimes(fixture("live_film_odyssey.html"), "ST00001270", cfg, today=today)
+    assert result.layer == "tickmarq"
+    assert len(result.showtimes) == 7
+    assert {s.format for s in result.showtimes if s.format} == {"IMAX 70mm"}
+
+
+def test_minute_less_times_are_not_dropped(cfg, today):
+    """'11AM' has no colon. The original regex required one, so a real
+    screening was invisible to the scanner."""
+    shows = parse_showtimes(fixture("live_film_odyssey.html"), "ST00001270", cfg, today=today).showtimes
+    eleven = [s for s in shows if s.starts_at.hour == 11 and s.starts_at.minute == 0]
+    assert len(eleven) == 2
+
+
+def test_veezi_session_id_becomes_the_identity(cfg, today):
+    shows = parse_showtimes(fixture("live_film_odyssey.html"), "ST00001270", cfg, today=today).showtimes
+    purchasable = [s for s in shows if s.performance_id]
+    assert len(purchasable) == 6
+    assert all(s.key.startswith("pid:") for s in purchasable)
+    assert all(s.ticket_url.startswith("https://ticketing.uswest.veezi.com/") for s in purchasable)
+
+
+def test_three_availability_states_are_distinguished(cfg, today):
+    """'Tickets Coming Soon' is a scheduled screening you cannot buy yet --
+    the earliest signal a date was added, so it must not be discarded."""
+    shows = parse_showtimes(fixture("live_film_odyssey.html"), "ST00001270", cfg, today=today).showtimes
+    by_status = {}
+    for show in shows:
+        by_status.setdefault(show.status, []).append(show)
+    assert sorted(by_status) == ["announced", "onsale", "soldout"]
+    assert len(by_status["announced"]) == 1
+    assert len(by_status["soldout"]) == 2
+
+
+def test_pre_sale_page_is_genuinely_empty_not_broken(cfg, today):
+    """A film page before any screening is scheduled: an 'Opening <date>' line
+    and no <dl>. Silence here is correct and must not raise a false alarm.
+
+    Note this is NOT what Dune: Part Three looks like -- it has had eight
+    screenings listed all along, which the pre-fix parser could not see.
+    """
+    result = parse_showtimes(fixture("film_pre_sale.html"), "ST00001410", cfg, today=today)
+    assert result.empty
+    assert result.saw_showtime_text is False

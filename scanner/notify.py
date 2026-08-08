@@ -118,20 +118,12 @@ def new_showtimes_message(film_title: str, film_url: str, diff) -> Message:
     count = len(diff.added)
     plural = "" if count == 1 else "s"
     title = short_title(film_title, "Dune: Part Three")
-    subject = f"\U0001f39f️ {count} new showtime{plural} - {title} ({_date_range(diff.added)})"
+    subject = f"\U0001f39f\ufe0f {count} new showtime{plural} - {title} ({_date_range(diff.added)})"
 
-    text = [f"{count} new showtime{plural} listed for {title}:", "", _showtime_list_text(diff.added), ""]
+    text = [f"{count} new showtime{plural} listed for {title}:", "",
+            _showtime_list_text(diff.added), ""]
     body = [f"<p><strong>{count} new showtime{plural}</strong> listed for {escape(title)}:</p>",
             _showtime_list_html(diff.added)]
-
-    if diff.changed:
-        text += ["Also changed:"] + [f"  * {c.describe()}" for c in diff.changed] + [""]
-        body.append("<p><strong>Also changed:</strong></p><ul>"
-                    + "".join(f"<li>{escape(c.describe())}</li>" for c in diff.changed) + "</ul>")
-    if diff.removed:
-        text += ["No longer listed:"] + [f"  * {s.describe()}" for s in diff.removed] + [""]
-        body.append("<p><strong>No longer listed:</strong></p>"
-                    + "".join(f"<p>{escape(s.describe())}</p>" for s in diff.removed))
 
     text.append(film_url)
     body.append(f'<p><a href="{escape(film_url, quote=True)}">View the film page</a></p>')

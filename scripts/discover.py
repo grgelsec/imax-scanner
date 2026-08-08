@@ -30,6 +30,7 @@ from scanner.parse import (                # noqa: E402
     showtimes_from_dom,
     showtimes_from_embedded,
     showtimes_from_jsonld,
+    showtimes_from_tickmarq,
 )
 
 FIXTURES = Path(__file__).resolve().parent.parent / "tests" / "fixtures"
@@ -73,6 +74,7 @@ def report_page(name: str, url: str, fetcher: Fetcher, cfg, film_id: str, save: 
     print("\nper-layer yield:")
     for layer, extractor in (("json-ld", showtimes_from_jsonld),
                              ("embedded-state", showtimes_from_embedded),
+                             ("tickmarq", showtimes_from_tickmarq),
                              ("dom", showtimes_from_dom)):
         try:
             shows = extractor(html, film_id, cfg)
@@ -84,6 +86,10 @@ def report_page(name: str, url: str, fetcher: Fetcher, cfg, film_id: str, save: 
 
     chosen = parse_showtimes(html, film_id, cfg)
     print(f"\n=> parser would use layer '{chosen.layer}' -> {len(chosen.showtimes)} showtime(s)")
+    for show in chosen.showtimes:
+        print(f"     {show.describe():<52} [{show.status}]  {show.ticket_url}")
+    if chosen.empty and looks_like_showtimes(html):
+        dump_markup(html)
     if chosen.empty and chosen.saw_showtime_text:
         print("   !! times are visible on the page but no layer parsed them.")
         print("   !! showtimes are probably rendered client-side: look for an API endpoint")
@@ -94,6 +100,44 @@ def report_page(name: str, url: str, fetcher: Fetcher, cfg, film_id: str, save: 
         target = FIXTURES / f"live_{name.lower().replace(' ', '_')}.html"
         target.write_text(html, encoding="utf-8")
         print(f"   saved -> {target.relative_to(Path.cwd()) if target.is_relative_to(Path.cwd()) else target}")
+
+
+def dump_markup(html: str, window: int = 2600) -> None:
+    """Print the markup around the first visible time, plus link and JSON-LD shapes.
+
+    Runs only when a page shows times that no layer could parse -- exactly the
+    case where the selectors need rewriting and the real markup is the only
+    thing that helps. Prints into the job log because artifact downloads are
+    not reachable from the dev environment.
+    """
+    from scanner.parse import TIME_RE  # local import keeps the module's API clean
+
+    stripped = re.sub(r"(?is)<(script|style).*?</\1>", " ", html)
+    match = TIME_RE.search(re.sub(r"<[^>]+>", " ", stripped))
+    print("\n   --- markup around the first visible showtime " + "-" * 26)
+    if match:
+        # Map back into the tagged HTML by searching for the matched text.
+        needle = match.group(0)
+        pos = stripped.find(needle)
+        chunk = stripped[max(0, pos - window // 3): pos + window]
+        chunk = re.sub(r"\n\s*\n+", "\n", chunk)
+        for line in chunk.splitlines():
+            line = line.rstrip()
+            if line.strip():
+                print("   | " + line[:220])
+    else:
+        print("   (no time text found to anchor on)")
+
+    hrefs = sorted({h for h in re.findall(r'href="([^"]{4,90})"', stripped)
+                    if re.search(r"(?i)ticket|showtime|perform|session|seat|order|book|film", h)})
+    print(f"\n   --- {len(hrefs)} candidate link shape(s) " + "-" * 34)
+    for href in hrefs[:25]:
+        print(f"   | {href}")
+
+    for i, block in enumerate(re.findall(
+            r'(?is)<script[^>]+application/ld\+json[^>]*>(.*?)</script>', html)):
+        print(f"\n   --- JSON-LD block {i} (first 700 chars) " + "-" * 24)
+        print("   | " + re.sub(r"\s+", " ", block.strip())[:700])
 
 
 def main() -> int:
@@ -112,7 +156,11 @@ def main() -> int:
     for url in (cfg.film_url(film_id), cfg.films_index_url, cfg.showtimes_url()):
         print(f"allowed to fetch {url}: {fetcher.allowed(url)}")
 
-    report_page("Film page", cfg.film_url(film_id), fetcher, cfg, film_id, args.save)
+    # Probe every configured film. Pointing this at a film with tickets on sale
+    # today acts as a control: if that one also yields zero showtimes, the
+    # parser is broken rather than the schedule being empty.
+    for fid in cfg.film_ids:
+        report_page(f"Film page {fid}", cfg.film_url(fid), fetcher, cfg, fid, args.save)
 
     rule(f"Films index\n{cfg.films_index_url}")
     index = fetcher.get(cfg.films_index_url)

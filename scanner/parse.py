@@ -57,7 +57,16 @@ STATUS_KEYS = ("status", "availability", "soldout", "issoldout", "available",
 PATH_HINTS = ("showtime", "session", "performance", "screening", "showing",
               "event", "times", "schedule", "shows")
 
-TIME_RE = re.compile(r"\b(\d{1,2}):(\d{2})\s*([AaPp])\.?[Mm]\.?\b|\b([01]?\d|2[0-3]):([0-5]\d)\b")
+# Minutes are optional: this venue writes "11AM" as often as "10:15PM".
+TIME_RE = re.compile(
+    r"\b(\d{1,2})(?::(\d{2}))?\s*([AaPp])\.?[Mm]\.?\b"   # 6:30PM, 11AM, 7 p.m.
+    r"|\b([01]?\d|2[0-3]):([0-5]\d)\b"                     # 19:00
+)
+# TickMarq fronts Veezi. Ticket links carry the Veezi session id, and each
+# button's title spells out the whole datetime -- far sturdier to read than
+# inferring a date from whichever heading happens to sit above the link.
+VEEZI_TITLE_RE = re.compile(r"(?i)\bat\s+(\d{1,2}(?::\d{2})?\s*[AP]\.?M\.?)\s+on\s+(.+?)\s*$")
+VEEZI_PURCHASE_RE = re.compile(r"(?i)veezi\.com/purchase/(\d+)")
 TICKET_HREF_RE = re.compile(r"(?i)/(tickets?|showtimes?|performances?|sessions?|booking|order|seats)\b")
 FORMAT_HINT_RE = re.compile(
     r"(?i)\b(IMAX\s*(?:70|35)\s*mm(?:\s+film)?|IMAX\s+with\s+Laser|IMAX|70\s*mm|35\s*mm"
@@ -67,6 +76,14 @@ FORMAT_HINT_RE = re.compile(
 # showtime's identity stable even if its listed time or format is edited.
 TICKET_ID_RE = re.compile(r"(?i)/(?:tickets?|performances?|sessions?|showtimes?)/([A-Za-z0-9_-]{3,})")
 SOLDOUT_RE = re.compile(r"(?i)\b(sold\s*out|unavailable|no\s+seats|not\s+available)\b")
+# Text that only appears once a *specific performance* is purchasable. A page
+# carrying these while yielding zero parsed showtimes is broken, not empty --
+# generic "buy tickets" nav wording is deliberately excluded as too weak.
+PURCHASE_FLOW_RE = re.compile(
+    r"(?i)(select\s+(?:your\s+)?seats?|choose\s+(?:your\s+)?seats?|pick\s+(?:your\s+)?seats?"
+    r"|seat\s*map|seating\s+chart|how\s+many\s+tickets|number\s+of\s+tickets"
+    r"|ticket\s+quantity|quantity\s+of\s+tickets|add\s+to\s+cart|proceed\s+to\s+checkout)"
+)
 FILM_ID_RE = re.compile(r"/films/(ST\d+)")
 DATE_TEXT_RE = re.compile(
     r"(?i)\b(?:(?:mon|tues?|wed(?:nes)?|thur?s?|fri|sat(?:ur)?|sun)(?:day)?,?\s+)?"
@@ -293,6 +310,96 @@ def showtimes_from_embedded(html: str, film_id: str, cfg, today: date | None = N
     return dedupe(found)
 
 
+# --- layer 4a: TickMarq/Veezi, the shape this venue actually ships ---
+COMING_SOON_RE = re.compile(r"(?i)\b(coming soon|on sale soon|not yet on sale)\b")
+
+
+def _tickmarq_button(element, film_id: str, cfg, fallback_date, today: date) -> "Showtime | None":
+    """Read one showtime button.
+
+    Handles both kinds the venue emits: an <a class="veezi-buy"> that is
+    purchasable, and a <span ... title="Tickets Coming Soon"> for a screening
+    that is scheduled but not yet on sale. The second is the earliest possible
+    signal that a date has been added, so it is captured, not skipped.
+    """
+    classes = element.get("class") or []
+    title = element.get("title", "") or ""
+    href = element.get("href", "") or ""
+    label = element.get_text(" ", strip=True)
+
+    purchase = VEEZI_PURCHASE_RE.search(href)
+    titled = VEEZI_TITLE_RE.search(title)
+    if not (purchase or titled or ("button" in classes and _parse_time_text(label))):
+        return None
+
+    # The title attribute is authoritative when present; it carries both halves.
+    day, clock = fallback_date, None
+    if titled:
+        clock = _parse_time_text(titled.group(1))
+        day = _parse_date_text(titled.group(2), today) or fallback_date
+    if clock is None:
+        clock = _parse_time_text(label)
+    if clock is None or day is None:
+        return None
+
+    starts_at = parse_datetime(datetime(day.year, day.month, day.day, clock[0], clock[1]), cfg.local_tz)
+    if starts_at is None or not _plausible(starts_at, today):
+        return None
+
+    if "sold-out" in classes or SOLDOUT_RE.search(title):
+        status = "soldout"
+    elif purchase and element.name == "a":
+        status = "onsale"
+    elif COMING_SOON_RE.search(title) or element.name != "a":
+        status = "announced"
+    else:
+        status = "unknown"
+
+    # "<Film Name> at 6:30PM on Aug. 8, 2026" -> pull the format out of the name.
+    format_source = title.split(" at ")[0] if titled else ""
+    format_match = FORMAT_HINT_RE.search(format_source)
+
+    return Showtime(
+        film_id=film_id,
+        starts_at=starts_at,
+        title=format_source,
+        format=format_match.group(0) if format_match else "",
+        ticket_url=_absolute(href, cfg.base_url),
+        performance_id=purchase.group(1) if purchase else "",
+        status=status,
+    )
+
+
+def showtimes_from_tickmarq(html: str, film_id: str, cfg, today: date | None = None) -> list[Showtime]:
+    """Film pages list <dl><dt>date</dt><dd>time buttons</dd></dl>."""
+    if BeautifulSoup is None:
+        return []
+    today = today or datetime.now().date()
+    soup = BeautifulSoup(html, "lxml")
+    found: list[Showtime] = []
+
+    for definition_list in soup.find_all("dl"):
+        current_date = None
+        for child in definition_list.find_all(["dt", "dd"], recursive=False) or definition_list.find_all(["dt", "dd"]):
+            if child.name == "dt":
+                current_date = _parse_date_text(child.get_text(" ", strip=True), today)
+                continue
+            for element in child.find_all(["a", "span"]):
+                show = _tickmarq_button(element, film_id, cfg, current_date, today)
+                if show is not None:
+                    found.append(show)
+
+    # The venue-wide calendar uses cards instead of a <dl>, but the buttons
+    # still carry the full datetime in their title.
+    for element in soup.find_all("a", title=True):
+        if VEEZI_TITLE_RE.search(element.get("title", "")):
+            show = _tickmarq_button(element, film_id, cfg, None, today)
+            if show is not None:
+                found.append(show)
+
+    return dedupe(found)
+
+
 # --- layer 4: DOM -----------------------------------------------------------
 def _parse_date_text(text: str, today: date) -> date | None:
     iso = ISO_DATE_RE.search(text)
@@ -329,7 +436,9 @@ def _parse_time_text(text: str):
     if not match:
         return None
     if match.group(1):
-        hour, minute, meridiem = int(match.group(1)), int(match.group(2)), match.group(3).lower()
+        hour = int(match.group(1))
+        minute = int(match.group(2)) if match.group(2) else 0
+        meridiem = match.group(3).lower()
         if meridiem == "p" and hour != 12:
             hour += 12
         elif meridiem == "a" and hour == 12:
@@ -437,6 +546,10 @@ def looks_like_showtimes(html: str) -> bool:
     text = re.sub(r"<[^>]+>", " ", text)
     times = len(TIME_RE.findall(text))
     keyword = re.search(r"(?i)\b(showtime|show time|buy tickets|get tickets|select a time)\b", text)
+    if PURCHASE_FLOW_RE.search(text):
+        # A live seat/quantity picker means a performance is on sale right now,
+        # so failing to parse one is our bug, not an empty schedule.
+        return True
     return times >= 2 or (times >= 1 and keyword is not None)
 
 
@@ -462,6 +575,7 @@ def parse_showtimes(text: str, film_id: str, cfg, is_json: bool = False,
     layers = (
         ("json-ld", showtimes_from_jsonld),
         ("embedded-state", showtimes_from_embedded),
+        ("tickmarq", showtimes_from_tickmarq),
         ("dom", showtimes_from_dom),
     )
     for name, extractor in layers:

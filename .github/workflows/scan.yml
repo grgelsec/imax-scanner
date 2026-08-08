@@ -9,6 +9,15 @@ on:
     - cron: '23 * * * *'
   workflow_dispatch:
     inputs:
+      mode:
+        description: 'What to run'
+        type: choice
+        options: [scan, discover, test-email]
+        default: scan
+      film_ids:
+        description: 'Override FILM_IDS (e.g. ST00001270 - a film with tickets on sale, as a control)'
+        type: string
+        default: ''
       force_heartbeat:
         description: 'Also send the daily digest email now'
         type: boolean
@@ -37,15 +46,46 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Scan
-        id: scan
+      # Probes the live page and prints how showtimes are actually delivered:
+      # JSON-LD, an embedded state blob, a JSON endpoint, or nothing (meaning
+      # the page is rendered client-side). Runs here because the runner can
+      # reach the site from a network that is not blocked.
+      - name: Discover
+        if: ${{ inputs.mode == 'discover' }}
+        env:
+          FILM_IDS: ${{ inputs.film_ids || vars.FILM_IDS }}
+        run: python scripts/discover.py --save
+
+      - name: Upload captured pages
+        if: ${{ inputs.mode == 'discover' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-pages
+          path: tests/fixtures/live_*.html
+          retention-days: 7
+          if-no-files-found: warn
+
+      # Verifies SMTP credentials without touching state or the site.
+      - name: Test email
+        if: ${{ inputs.mode == 'test-email' }}
         env:
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
-          FILM_IDS: ${{ vars.FILM_IDS }}
+        run: python -m scanner.main --test-email
+
+      - name: Scan
+        id: scan
+        if: ${{ inputs.mode != 'discover' && inputs.mode != 'test-email' }}
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          FILM_IDS: ${{ inputs.film_ids || vars.FILM_IDS }}
           WATCH_PATTERN: ${{ vars.WATCH_PATTERN }}
           LOCAL_TZ: ${{ vars.LOCAL_TZ }}
         run: |
@@ -57,7 +97,7 @@ jobs:
       # so the consecutive-failure counter would reset to zero every hour and
       # the "parser is broken" email could never reach its third strike.
       - name: Commit state
-        if: always()
+        if: ${{ always() && inputs.mode != 'discover' && inputs.mode != 'test-email' }}
         run: |
           if [ -z "$(git status --porcelain state/)" ]; then
             echo "state unchanged"; exit 0
