@@ -64,13 +64,19 @@ Run workflow* to test, then merge to `main` to start the schedule.
 | --- | --- |
 | 👀 Now watching … | Once, on the first run — a baseline, so you don't get one alert per already-listed showtime |
 | 🎟️ N new showtimes | Showtimes were **added**. The one you actually care about |
+| 🎫 Tickets now on sale | Screenings you already knew about became purchasable |
 | 🎬 New film page … | A new film page matching `WATCH_PATTERN` appeared |
 | ⚠️ needs attention | The page loaded but showtimes could not be read — three runs in a row |
 | ✅ recovered | Parsing works again |
 | ✅/⚠️ daily digest | Once a day at noon local |
 
 Sold-outs and removed showtimes are recorded in the daily digest but never emailed on their
-own — only additions are worth an interruption.
+own — only additions and tickets opening are worth an interruption.
+
+**Why "on sale" is its own alert:** this venue lists a screening as *Tickets Coming Soon*
+before you can buy it. That gives two separate moments worth knowing about — the date
+appearing, and the tickets opening — and only the second one you can act on. Both are
+captured; a screening going *sold out* is not, since there is nothing to do about it.
 
 ## The daily heartbeat
 
@@ -109,8 +115,11 @@ CLI: `--dry-run`, `--no-jitter`, `--test-email`, `--force-heartbeat`, `-v`.
 `state/indyimax.json` is committed after every run — that file is the scanner's memory, and
 its diffs are a readable history of when each showtime appeared.
 
-Each showtime gets a stable identity: the platform's performance ID when the page exposes
-one, otherwise a hash of film + exact local start time + format + auditorium. Availability is
+Each showtime gets a stable identity: the Veezi session id from its ticket link when the page
+exposes one, otherwise a hash of film + exact local start time + format + auditorium. When a
+screening gains an id — which happens the moment *Tickets Coming Soon* becomes purchasable —
+the diff matches it back to the old record by start time, so one screening going on sale is not
+reported as a different screening appearing and the original vanishing. Availability is
 deliberately **not** part of that identity, so a show selling out reads as a change rather
 than as one showtime vanishing and a different one appearing.
 

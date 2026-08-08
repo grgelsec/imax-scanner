@@ -21,7 +21,9 @@ class Change:
                 f"moved {self.before.starts_at.strftime('%a %b %-d %-I:%M %p')} "
                 f"-> {self.after.starts_at.strftime('%a %b %-d %-I:%M %p')}"
             )
-        if "status" in self.kinds:
+        if "on_sale" in self.kinds:
+            detail.append(f"tickets now on sale (was {self.before.status})")
+        elif "status" in self.kinds:
             detail.append(f"{self.before.status} -> {self.after.status}")
         return f"{self.after.describe()} ({'; '.join(detail)})"
 
@@ -31,12 +33,18 @@ class ShowtimeDiff:
     added: list[Showtime] = field(default_factory=list)
     removed: list[Showtime] = field(default_factory=list)
     changed: list[Change] = field(default_factory=list)
+    went_on_sale: list[Change] = field(default_factory=list)
     unchanged: int = 0
 
     @property
     def has_news(self) -> bool:
-        """Only additions are worth waking someone up for."""
-        return bool(self.added)
+        """Worth an email: a new screening, or one you can suddenly buy.
+
+        This venue lists screenings as "Tickets Coming Soon" before they are
+        purchasable, so the moment tickets open is a separate event from the
+        moment the date appeared -- and it is the one you can act on.
+        """
+        return bool(self.added or self.went_on_sale)
 
     @property
     def any_movement(self) -> bool:
@@ -46,39 +54,64 @@ class ShowtimeDiff:
 def diff_showtimes(previous: dict, current: list[Showtime], tz) -> ShowtimeDiff:
     """previous: {key: serialized showtime} from state; current: freshly parsed."""
     result = ShowtimeDiff()
-    current_by_key = {show.key: show for show in current}
     previous = previous or {}
+    remaining = dict(previous)
+    pending: list[Showtime] = []
 
-    for key, show in current_by_key.items():
-        old_raw = previous.get(key)
+    # Pass 1 -- exact identity.
+    for show in current:
+        old_raw = remaining.pop(show.key, None)
         if old_raw is None:
-            result.added.append(show)
+            pending.append(show)
             continue
-        old = Showtime.from_dict(old_raw, tz)
-        if old is None:
-            result.unchanged += 1
-            continue
-        kinds = []
-        if old.starts_at != show.starts_at:
-            kinds.append("time")
-        # "unknown" means a layer could not read status; do not report that as a flip.
-        if old.status != show.status and "unknown" not in (old.status, show.status):
-            kinds.append("status")
-        if kinds:
-            result.changed.append(Change(before=old, after=show, kinds=kinds))
-        else:
-            result.unchanged += 1
+        _compare(result, Showtime.from_dict(old_raw, tz), show)
 
-    for key, old_raw in previous.items():
-        if key in current_by_key:
-            continue
-        old = Showtime.from_dict(old_raw, tz)
+    # Pass 2 -- the same screening whose identity migrated. This venue lists a
+    # screening as "Tickets Coming Soon" with no Veezi id, then gives it one
+    # once it is purchasable. Matching the leftovers by exact start time keeps
+    # that as a single showtime going on sale, instead of announcing three new
+    # screenings and three vanished ones for what is really one event.
+    by_instant: dict[tuple, list[str]] = {}
+    for key, raw in remaining.items():
+        old = Showtime.from_dict(raw, tz)
+        if old is not None:
+            by_instant.setdefault((old.film_id, old.starts_at), []).append(key)
+
+    for show in pending:
+        candidates = by_instant.get((show.film_id, show.starts_at), [])
+        if len(candidates) == 1:  # unambiguous -- one screening at that instant
+            key = candidates.pop()
+            _compare(result, Showtime.from_dict(remaining.pop(key), tz), show)
+        else:
+            result.added.append(show)
+
+    for raw in remaining.values():
+        old = Showtime.from_dict(raw, tz)
         if old is not None:
             result.removed.append(old)
 
     result.added.sort(key=lambda s: s.starts_at)
     result.removed.sort(key=lambda s: s.starts_at)
     return result
+
+
+def _compare(result: ShowtimeDiff, old: Showtime | None, new: Showtime) -> None:
+    if old is None:
+        result.unchanged += 1
+        return
+    kinds = []
+    if old.starts_at != new.starts_at:
+        kinds.append("time")
+    # "unknown" means a layer could not read status; do not report that as a flip.
+    if old.status != new.status and "unknown" not in (old.status, new.status):
+        kinds.append("status")
+
+    if new.status == "onsale" and old.status in ("announced", "soldout"):
+        result.went_on_sale.append(Change(before=old, after=new, kinds=kinds + ["on_sale"]))
+    elif kinds:
+        result.changed.append(Change(before=old, after=new, kinds=kinds))
+    else:
+        result.unchanged += 1
 
 
 def diff_films(known_ids, current: dict, watch_pattern: str):

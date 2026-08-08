@@ -186,9 +186,12 @@ def scan_film(cfg, state, notifier, fetcher, film_id: str, now_iso: str) -> Sour
         changes = diff_showtimes(stored, parsed.showtimes, cfg.local_tz)
         if changes.has_news:
             notifier.send(new_showtimes_message(summary.title, url, changes))
-            record_event(state, "added",
-                         f"{len(changes.added)} new showtime(s): "
-                         + ", ".join(s.describe() for s in changes.added[:5]))
+            if changes.added:
+                record_event(state, "added",
+                             f"{len(changes.added)} new showtime(s): "
+                             + ", ".join(s.describe() for s in changes.added[:5]))
+            for change in changes.went_on_sale:
+                record_event(state, "on-sale", change.describe())
         elif changes.any_movement:
             # Removals and sold-outs are logged for the daily digest, not emailed.
             if changes.removed:

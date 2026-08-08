@@ -118,11 +118,30 @@ def new_showtimes_message(film_title: str, film_url: str, diff) -> Message:
     count = len(diff.added)
     plural = "" if count == 1 else "s"
     title = short_title(film_title, "Dune: Part Three")
-    subject = f"\U0001f39f️ {count} new showtime{plural} - {title} ({_date_range(diff.added)})"
+    on_sale = [change.after for change in diff.went_on_sale]
 
-    text = [f"{count} new showtime{plural} listed for {title}:", "", _showtime_list_text(diff.added), ""]
-    body = [f"<p><strong>{count} new showtime{plural}</strong> listed for {escape(title)}:</p>",
-            _showtime_list_html(diff.added)]
+    if count:
+        subject = f"\U0001f39f️ {count} new showtime{plural} - {title} ({_date_range(diff.added)})"
+        text = [f"{count} new showtime{plural} listed for {title}:", "",
+                _showtime_list_text(diff.added), ""]
+        body = [f"<p><strong>{count} new showtime{plural}</strong> listed for {escape(title)}:</p>",
+                _showtime_list_html(diff.added)]
+    else:
+        plural = "" if len(on_sale) == 1 else "s"
+        subject = (f"\U0001f3ab Tickets now on sale - {len(on_sale)} showtime{plural} "
+                   f"for {title} ({_date_range(on_sale)})")
+        text, body = [], []
+
+    if on_sale and count:
+        text += [f"Tickets just went on sale for {len(on_sale)} showtime(s):", "",
+                 _showtime_list_text(on_sale), ""]
+        body.append(f"<p><strong>Tickets just went on sale</strong> for {len(on_sale)} "
+                    "showtime(s):</p>" + _showtime_list_html(on_sale))
+    elif on_sale:
+        text += [f"Tickets just went on sale for {len(on_sale)} showtime{plural} of {title}:", "",
+                 _showtime_list_text(on_sale), ""]
+        body.append(f"<p><strong>Tickets just went on sale</strong> for {escape(title)}:</p>"
+                    + _showtime_list_html(on_sale))
 
     if diff.changed:
         text += ["Also changed:"] + [f"  * {c.describe()}" for c in diff.changed] + [""]
