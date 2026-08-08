@@ -80,3 +80,19 @@ def test_parser_never_raises_on_garbage(cfg, today):
     for junk in ("", "<html>", "<<<>>>", "not html at all", "<time datetime='nope'></time>"):
         result = parse_showtimes(junk, "ST00001410", cfg, today=today)
         assert result.showtimes == []
+
+
+def test_purchase_widget_without_parseable_times_is_a_fault_not_an_empty_page(cfg, today):
+    """A client-rendered page carries a seat/quantity picker but no clock text.
+    Without this, it looks identical to 'no showtimes on sale' and the scanner
+    would stay silent forever -- the exact failure this monitor exists to avoid.
+    """
+    result = parse_showtimes(fixture("film_js_shell.html"), "ST00001410", cfg, today=today)
+    assert result.empty
+    assert result.saw_showtime_text is True
+
+
+def test_generic_buy_tickets_wording_alone_does_not_cry_wolf(cfg, today):
+    """Site-wide nav saying 'Buy Tickets' must not flag a genuinely empty page."""
+    html = "<html><body><nav>Buy Tickets</nav><p>Opening December 18.</p></body></html>"
+    assert parse_showtimes(html, "ST00001410", cfg, today=today).saw_showtime_text is False

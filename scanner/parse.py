@@ -67,6 +67,14 @@ FORMAT_HINT_RE = re.compile(
 # showtime's identity stable even if its listed time or format is edited.
 TICKET_ID_RE = re.compile(r"(?i)/(?:tickets?|performances?|sessions?|showtimes?)/([A-Za-z0-9_-]{3,})")
 SOLDOUT_RE = re.compile(r"(?i)\b(sold\s*out|unavailable|no\s+seats|not\s+available)\b")
+# Text that only appears once a *specific performance* is purchasable. A page
+# carrying these while yielding zero parsed showtimes is broken, not empty --
+# generic "buy tickets" nav wording is deliberately excluded as too weak.
+PURCHASE_FLOW_RE = re.compile(
+    r"(?i)(select\s+(?:your\s+)?seats?|choose\s+(?:your\s+)?seats?|pick\s+(?:your\s+)?seats?"
+    r"|seat\s*map|seating\s+chart|how\s+many\s+tickets|number\s+of\s+tickets"
+    r"|ticket\s+quantity|quantity\s+of\s+tickets|add\s+to\s+cart|proceed\s+to\s+checkout)"
+)
 FILM_ID_RE = re.compile(r"/films/(ST\d+)")
 DATE_TEXT_RE = re.compile(
     r"(?i)\b(?:(?:mon|tues?|wed(?:nes)?|thur?s?|fri|sat(?:ur)?|sun)(?:day)?,?\s+)?"
@@ -437,6 +445,10 @@ def looks_like_showtimes(html: str) -> bool:
     text = re.sub(r"<[^>]+>", " ", text)
     times = len(TIME_RE.findall(text))
     keyword = re.search(r"(?i)\b(showtime|show time|buy tickets|get tickets|select a time)\b", text)
+    if PURCHASE_FLOW_RE.search(text):
+        # A live seat/quantity picker means a performance is on sale right now,
+        # so failing to parse one is our bug, not an empty schedule.
+        return True
     return times >= 2 or (times >= 1 and keyword is not None)
 
 
