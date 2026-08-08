@@ -1,0 +1,78 @@
+name: Scan for new showtimes
+
+on:
+  schedule:
+    # Hourly at :23 UTC. Deliberately off :00 -- that minute is the busiest on
+    # GitHub's shared scheduler and runs there are delayed the most. The job
+    # itself then sleeps a random 0-7 minutes so requests are not fired at a
+    # metronome-regular instant.
+    - cron: '23 * * * *'
+  workflow_dispatch:
+    inputs:
+      force_heartbeat:
+        description: 'Also send the daily digest email now'
+        type: boolean
+        default: false
+
+# Two runs must never race to commit the state file.
+concurrency:
+  group: imax-scan
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - run: pip install -r requirements.txt
+
+      - name: Scan
+        id: scan
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          FILM_IDS: ${{ vars.FILM_IDS }}
+          WATCH_PATTERN: ${{ vars.WATCH_PATTERN }}
+          LOCAL_TZ: ${{ vars.LOCAL_TZ }}
+        run: |
+          python -m scanner.main \
+            ${{ inputs.force_heartbeat && '--force-heartbeat' || '' }}
+
+      # `always()` is load-bearing. A scan that cannot read the page exits
+      # nonzero, and without this the state file would never be committed --
+      # so the consecutive-failure counter would reset to zero every hour and
+      # the "parser is broken" email could never reach its third strike.
+      - name: Commit state
+        if: always()
+        run: |
+          if [ -z "$(git status --porcelain state/)" ]; then
+            echo "state unchanged"; exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/
+          git commit -m "chore: update showtime state [skip ci]"
+          for attempt in 1 2 3 4; do
+            if git push; then
+              echo "pushed on attempt $attempt"; exit 0
+            fi
+            echo "push failed, rebasing and retrying..."
+            git pull --rebase --autostash || true
+            sleep $((attempt * 3))
+          done
+          echo "::error::could not push state after 4 attempts"
+          exit 1
