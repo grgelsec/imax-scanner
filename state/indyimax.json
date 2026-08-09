@@ -43,7 +43,7 @@
     "ST00001450"
   ],
   "last_heartbeat_date_local": "2026-08-08",
-  "last_run_utc": "2026-08-09T11:51:43+00:00",
+  "last_run_utc": "2026-08-09T13:28:56+00:00",
   "run_log": [
     {
       "http": 200,
@@ -158,6 +158,12 @@
       "ok": true,
       "showtimes": 8,
       "ts": "2026-08-09T11:51:43+00:00"
+    },
+    {
+      "http": 200,
+      "ok": true,
+      "showtimes": 8,
+      "ts": "2026-08-09T13:28:56+00:00"
     }
   ],
   "schema_version": 1,
@@ -165,7 +171,7 @@
     "film:ST00001410": {
       "bootstrapped": true,
       "consecutive_failures": 0,
-      "content_hash": "628508ec46dfd67f68409baa8c2480f5eec052abcaab62022e343ffcfda99960",
+      "content_hash": "b807bce9ae5ff95732f1074f27d0059d0a0738aefab5d06d318ec89eedcd572e",
       "showtimes": {
         "pid:22015": {
           "auditorium": "",
@@ -174,7 +180,7 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-09T11:51:42+00:00",
+          "last_seen": "2026-08-09T13:28:56+00:00",
           "performance_id": "22015",
           "status": "soldout",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22015?siteToken=h1x2n993cctmzegr3ev7gsev08",
@@ -187,7 +193,7 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-09T11:51:42+00:00",
+          "last_seen": "2026-08-09T13:28:56+00:00",
           "performance_id": "22016",
           "status": "soldout",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22016?siteToken=h1x2n993cctmzegr3ev7gsev08",
@@ -200,7 +206,7 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-09T11:51:42+00:00",
+          "last_seen": "2026-08-09T13:28:56+00:00",
           "performance_id": "22017",
           "status": "onsale",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22017?siteToken=h1x2n993cctmzegr3ev7gsev08",
@@ -213,7 +219,7 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-09T11:51:42+00:00",
+          "last_seen": "2026-08-09T13:28:56+00:00",
           "performance_id": "22018",
           "status": "onsale",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22018?siteToken=h1x2n993cctmzegr3ev7gsev08",
@@ -226,7 +232,7 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-09T11:51:42+00:00",
+          "last_seen": "2026-08-09T13:28:56+00:00",
           "performance_id": "22019",
           "status": "soldout",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22019?siteToken=h1x2n993cctmzegr3ev7gsev08",
@@ -239,7 +245,7 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-09T11:51:42+00:00",
+          "last_seen": "2026-08-09T13:28:56+00:00",
           "performance_id": "22020",
           "status": "soldout",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22020?siteToken=h1x2n993cctmzegr3ev7gsev08",
@@ -252,7 +258,7 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-09T11:51:42+00:00",
+          "last_seen": "2026-08-09T13:28:56+00:00",
           "performance_id": "22021",
           "status": "onsale",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22021?siteToken=h1x2n993cctmzegr3ev7gsev08",
@@ -265,7 +271,7 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-09T11:51:42+00:00",
+          "last_seen": "2026-08-09T13:28:56+00:00",
           "performance_id": "22022",
           "status": "onsale",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22022?siteToken=h1x2n993cctmzegr3ev7gsev08",
