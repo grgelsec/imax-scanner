@@ -135,6 +135,16 @@
       "kind": "changed",
       "text": "Sat Dec 19, 2026 at 10:00 PM EST - IMAX 70mm - SOLD OUT (onsale -> soldout)",
       "ts": "2026-08-12T15:27:35+00:00"
+    },
+    {
+      "kind": "on-sale",
+      "text": "Sat Dec 19, 2026 at 10:00 PM EST - IMAX 70mm (tickets now on sale (was soldout))",
+      "ts": "2026-08-12T18:14:11+00:00"
+    },
+    {
+      "kind": "changed",
+      "text": "Sun Dec 20, 2026 at 7:00 PM EST - IMAX 70mm - SOLD OUT (onsale -> soldout)",
+      "ts": "2026-08-12T18:14:11+00:00"
     }
   ],
   "known_film_ids": [
@@ -143,14 +153,8 @@
     "ST00001450"
   ],
   "last_heartbeat_date_local": "2026-08-12",
-  "last_run_utc": "2026-08-12T17:25:46+00:00",
+  "last_run_utc": "2026-08-12T18:14:11+00:00",
   "run_log": [
-    {
-      "http": 200,
-      "ok": true,
-      "showtimes": 8,
-      "ts": "2026-08-09T17:05:44+00:00"
-    },
     {
       "http": 200,
       "ok": true,
@@ -432,6 +436,12 @@
       "ok": true,
       "showtimes": 8,
       "ts": "2026-08-12T17:25:44+00:00"
+    },
+    {
+      "http": 200,
+      "ok": true,
+      "showtimes": 8,
+      "ts": "2026-08-12T18:14:11+00:00"
     }
   ],
   "schema_version": 1,
@@ -439,7 +449,7 @@
     "film:ST00001410": {
       "bootstrapped": true,
       "consecutive_failures": 0,
-      "content_hash": "bd7eb3126dab229bbf11bc679af8af7e3069b7ad1b45c64f62fcc634197f0dc1",
+      "content_hash": "17187039c52ff613a89d3a520f2f0eec241a6fc1f78d8d30e1645c9f67da81db",
       "showtimes": {
         "pid:22015": {
           "auditorium": "",
@@ -448,7 +458,7 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-12T17:25:43+00:00",
+          "last_seen": "2026-08-12T18:14:11+00:00",
           "performance_id": "22015",
           "status": "soldout",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22015?siteToken=h1x2n993cctmzegr3ev7gsev08",
@@ -461,7 +471,7 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-12T17:25:43+00:00",
+          "last_seen": "2026-08-12T18:14:11+00:00",
           "performance_id": "22016",
           "status": "soldout",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22016?siteToken=h1x2n993cctmzegr3ev7gsev08",
@@ -474,7 +484,7 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-12T17:25:43+00:00",
+          "last_seen": "2026-08-12T18:14:11+00:00",
           "performance_id": "22017",
           "status": "soldout",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22017?siteToken=h1x2n993cctmzegr3ev7gsev08",
@@ -487,9 +497,9 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-12T17:25:43+00:00",
+          "last_seen": "2026-08-12T18:14:11+00:00",
           "performance_id": "22018",
-          "status": "onsale",
+          "status": "soldout",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22018?siteToken=h1x2n993cctmzegr3ev7gsev08",
           "title": "Dune: Part Three - The IMAX 70mm Experience"
         },
@@ -500,7 +510,7 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-12T17:25:43+00:00",
+          "last_seen": "2026-08-12T18:14:11+00:00",
           "performance_id": "22019",
           "status": "soldout",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22019?siteToken=h1x2n993cctmzegr3ev7gsev08",
@@ -513,7 +523,7 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-12T17:25:43+00:00",
+          "last_seen": "2026-08-12T18:14:11+00:00",
           "performance_id": "22020",
           "status": "soldout",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22020?siteToken=h1x2n993cctmzegr3ev7gsev08",
@@ -526,9 +536,9 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-12T17:25:43+00:00",
+          "last_seen": "2026-08-12T18:14:11+00:00",
           "performance_id": "22021",
-          "status": "soldout",
+          "status": "onsale",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22021?siteToken=h1x2n993cctmzegr3ev7gsev08",
           "title": "Dune: Part Three - The IMAX 70mm Experience"
         },
@@ -539,7 +549,7 @@
           "film_id": "ST00001410",
           "first_seen": "2026-08-08T20:40:04+00:00",
           "format": "IMAX 70mm",
-          "last_seen": "2026-08-12T17:25:43+00:00",
+          "last_seen": "2026-08-12T18:14:11+00:00",
           "performance_id": "22022",
           "status": "onsale",
           "ticket_url": "https://ticketing.uswest.veezi.com/purchase/22022?siteToken=h1x2n993cctmzegr3ev7gsev08",
