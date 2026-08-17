@@ -3,11 +3,6 @@
   "events": [
     {
       "kind": "on-sale",
-      "text": "Sun Dec 20, 2026 at 7:00 PM EST - IMAX 70mm (tickets now on sale (was soldout))",
-      "ts": "2026-08-14T16:12:44+00:00"
-    },
-    {
-      "kind": "on-sale",
       "text": "Sun Dec 20, 2026 at 10:00 PM EST - IMAX 70mm (tickets now on sale (was soldout))",
       "ts": "2026-08-14T16:12:44+00:00"
     },
@@ -300,6 +295,11 @@
       "kind": "on-sale",
       "text": "Sun Dec 20, 2026 at 7:00 PM EST - IMAX 70mm (tickets now on sale (was soldout))",
       "ts": "2026-08-17T15:49:54+00:00"
+    },
+    {
+      "kind": "failure",
+      "text": "Dune: Part Three - The IMAX 70mm Experience: upcoming showtimes disappeared from the page",
+      "ts": "2026-08-17T19:07:40+00:00"
     }
   ],
   "known_film_ids": [
@@ -308,14 +308,8 @@
     "ST00001450"
   ],
   "last_heartbeat_date_local": "2026-08-17",
-  "last_run_utc": "2026-08-17T17:51:02+00:00",
+  "last_run_utc": "2026-08-17T19:07:40+00:00",
   "run_log": [
-    {
-      "http": 200,
-      "ok": true,
-      "showtimes": 8,
-      "ts": "2026-08-15T15:43:07+00:00"
-    },
     {
       "http": 200,
       "ok": true,
@@ -597,14 +591,21 @@
       "ok": false,
       "showtimes": 0,
       "ts": "2026-08-17T17:51:02+00:00"
+    },
+    {
+      "http": 200,
+      "ok": false,
+      "showtimes": 0,
+      "ts": "2026-08-17T19:07:40+00:00"
     }
   ],
   "schema_version": 1,
   "sources": {
     "film:ST00001410": {
+      "alerted": true,
       "bootstrapped": true,
-      "consecutive_failures": 2,
-      "content_hash": "1409577e3d33e8117899bd64b89d7f1474f9d9c9564d58d7b051268267e1a119",
+      "consecutive_failures": 3,
+      "content_hash": "8a65e95f6b4e5ffed59c61cfe0871d615caaf13c68069ae72d3541b3b6910bd4",
       "showtimes": {
         "pid:22015": {
           "auditorium": "",
