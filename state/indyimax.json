@@ -308,14 +308,8 @@
     "ST00001450"
   ],
   "last_heartbeat_date_local": "2026-08-17",
-  "last_run_utc": "2026-08-18T09:54:16+00:00",
+  "last_run_utc": "2026-08-18T10:57:37+00:00",
   "run_log": [
-    {
-      "http": 200,
-      "ok": true,
-      "showtimes": 8,
-      "ts": "2026-08-16T07:50:51+00:00"
-    },
     {
       "http": 200,
       "ok": true,
@@ -597,6 +591,12 @@
       "ok": false,
       "showtimes": 0,
       "ts": "2026-08-18T09:54:16+00:00"
+    },
+    {
+      "http": 200,
+      "ok": false,
+      "showtimes": 0,
+      "ts": "2026-08-18T10:57:37+00:00"
     }
   ],
   "schema_version": 1,
@@ -604,8 +604,8 @@
     "film:ST00001410": {
       "alerted": true,
       "bootstrapped": true,
-      "consecutive_failures": 17,
-      "content_hash": "ad05c96398d4905a900e5cbbb35d6b897ae2fd992d962205e3ed4d4d9ad19962",
+      "consecutive_failures": 18,
+      "content_hash": "bb3b87e58375436db5b54402ae0af0cef7d5bc16a02df2d92475858044b68f94",
       "showtimes": {
         "pid:22015": {
           "auditorium": "",
