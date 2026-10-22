@@ -1,0 +1,29 @@
+name: BODHI booking API discovery
+
+# Temporary: maps the Toast Tables API from a runner that can reach it. Fires
+# on push to this branch because workflow_dispatch needs the file on main.
+on:
+  push:
+    branches: [claude/bodhi-reservation]
+    paths:
+      - scripts/toast_discover.py
+      - .github/workflows/bodhi-discover.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install playwright==1.47.0 && python -m playwright install --with-deps chromium
+
+      - run: python scripts/toast_discover.py --date 2026-10-29 --party 2
